@@ -1,0 +1,46 @@
+{
+  "name": "example-public-api",
+  "base_url": "https://api.example.com",
+  "default_headers": {
+    "Accept": "application/json",
+    "Authorization": "Bearer replace-me"
+  },
+  "timeout_seconds": 10,
+  "delay_threshold_ms": 900,
+  "report_path": "sqlscan-report.md",
+  "endpoints": [
+    {
+      "name": "search-users",
+      "method": "GET",
+      "path": "/users/search",
+      "query": {
+        "q": "alice"
+      },
+      "targets": [
+        {
+          "name": "q",
+          "location": "query"
+        }
+      ]
+    },
+    {
+      "name": "login",
+      "method": "POST",
+      "path": "/auth/login",
+      "json_body": {
+        "email": "alice@example.com",
+        "password": "example-password"
+      },
+      "targets": [
+        {
+          "name": "email",
+          "location": "json"
+        },
+        {
+          "name": "password",
+          "location": "json"
+        }
+      ]
+    }
+  ]
+}
