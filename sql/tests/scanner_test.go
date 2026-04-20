@@ -1,12 +1,16 @@
-package main
+package tests
 
 import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
+
+	"apisqlscan/sqlscan"
 )
 
 func TestRunScanDetectsSQLSignals(t *testing.T) {
@@ -33,13 +37,13 @@ func TestRunScanDetectsSQLSignals(t *testing.T) {
 	}))
 	defer server.Close()
 
-	cfg := Config{
+	cfg := sqlscan.Config{
 		Name:             "test-api",
 		BaseURL:          server.URL,
 		TimeoutSeconds:   3,
 		DelayThresholdMS: 800,
 		ReportPath:       "test-report.md",
-		Endpoints: []EndpointConfig{
+		Endpoints: []sqlscan.EndpointConfig{
 			{
 				Name:   "search",
 				Method: "GET",
@@ -47,14 +51,14 @@ func TestRunScanDetectsSQLSignals(t *testing.T) {
 				Query: map[string]string{
 					"q": "user",
 				},
-				Targets: []TargetConfig{
+				Targets: []sqlscan.TargetConfig{
 					{Name: "q", Location: "query"},
 				},
 			},
 		},
 	}
 
-	report, err := RunScan(context.Background(), cfg)
+	report, err := sqlscan.RunScan(context.Background(), cfg)
 	if err != nil {
 		t.Fatalf("RunScan returned error: %v", err)
 	}
@@ -68,28 +72,28 @@ func TestRunScanDetectsSQLSignals(t *testing.T) {
 	assertHasCategory(t, report.Findings, "time-based")
 }
 
-func TestGenerateMarkdownIncludesSuggestions(t *testing.T) {
-	report := Report{
+func TestWriteReportIncludesSuggestions(t *testing.T) {
+	report := sqlscan.Report{
 		GeneratedAt: time.Unix(0, 0).UTC(),
 		BaseURL:     "https://api.example.test",
-		Summary: Summary{
+		Summary: sqlscan.Summary{
 			EndpointsScanned: 1,
 			RequestsSent:     5,
 			Findings:         1,
 			High:             1,
 		},
-		Endpoints: []EndpointReport{
+		Endpoints: []sqlscan.EndpointReport{
 			{
 				Name:   "login",
 				Method: "POST",
 				Path:   "/login",
-				Baseline: ResponseSummary{
+				Baseline: sqlscan.ResponseSummary{
 					Status:     200,
 					DurationMS: 42,
 				},
 			},
 		},
-		Findings: []Finding{
+		Findings: []sqlscan.Finding{
 			{
 				Endpoint:        "login",
 				Target:          "email",
@@ -105,7 +109,17 @@ func TestGenerateMarkdownIncludesSuggestions(t *testing.T) {
 		Suggestions: []string{"Use parameterized queries."},
 	}
 
-	markdown := generateMarkdown(report)
+	reportPath := filepath.Join(t.TempDir(), "report.md")
+	if _, err := sqlscan.WriteReport(report, reportPath); err != nil {
+		t.Fatalf("WriteReport returned error: %v", err)
+	}
+
+	data, err := os.ReadFile(reportPath)
+	if err != nil {
+		t.Fatalf("ReadFile returned error: %v", err)
+	}
+
+	markdown := string(data)
 	if !strings.Contains(markdown, "## Hardening Suggestions") {
 		t.Fatalf("expected hardening section in markdown")
 	}
@@ -114,7 +128,7 @@ func TestGenerateMarkdownIncludesSuggestions(t *testing.T) {
 	}
 }
 
-func assertHasCategory(t *testing.T, findings []Finding, category string) {
+func assertHasCategory(t *testing.T, findings []sqlscan.Finding, category string) {
 	t.Helper()
 	for _, finding := range findings {
 		if finding.Category == category {

@@ -1,4 +1,4 @@
-package main
+package sqlscan
 
 import (
 	"encoding/json"
@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 func WriteReport(report Report, configuredPath string) (string, error) {
@@ -116,4 +117,8 @@ func generateMarkdown(report Report) string {
 
 func escapePipes(value string) string {
 	return strings.ReplaceAll(value, "|", "\\|")
+}
+
+func defaultReportPath() string {
+	return fmt.Sprintf("sqlscan-report-%s.md", time.Now().Format("20060102-150405"))
 }

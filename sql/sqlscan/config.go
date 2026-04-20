@@ -1,4 +1,4 @@
-package main
+package sqlscan
 
 import (
 	"encoding/json"
@@ -9,25 +9,25 @@ import (
 )
 
 type Config struct {
-	Name              string            `json:"name"`
-	BaseURL           string            `json:"base_url"`
-	DefaultHeaders    map[string]string `json:"default_headers"`
-	TimeoutSeconds    int               `json:"timeout_seconds"`
-	DelayThresholdMS  int               `json:"delay_threshold_ms"`
-	ReportPath        string            `json:"report_path"`
-	Endpoints         []EndpointConfig  `json:"endpoints"`
+	Name             string            `json:"name"`
+	BaseURL          string            `json:"base_url"`
+	DefaultHeaders   map[string]string `json:"default_headers"`
+	TimeoutSeconds   int               `json:"timeout_seconds"`
+	DelayThresholdMS int               `json:"delay_threshold_ms"`
+	ReportPath       string            `json:"report_path"`
+	Endpoints        []EndpointConfig  `json:"endpoints"`
 }
 
 type EndpointConfig struct {
-	Name           string                 `json:"name"`
-	Method         string                 `json:"method"`
-	Path           string                 `json:"path"`
-	Query          map[string]string      `json:"query"`
-	Headers        map[string]string      `json:"headers"`
-	PathParams     map[string]string      `json:"path_params"`
-	JSONBody       map[string]any         `json:"json_body"`
-	Targets        []TargetConfig         `json:"targets"`
-	ExpectedStatus int                    `json:"expected_status"`
+	Name           string            `json:"name"`
+	Method         string            `json:"method"`
+	Path           string            `json:"path"`
+	Query          map[string]string `json:"query"`
+	Headers        map[string]string `json:"headers"`
+	PathParams     map[string]string `json:"path_params"`
+	JSONBody       map[string]any    `json:"json_body"`
+	Targets        []TargetConfig    `json:"targets"`
+	ExpectedStatus int               `json:"expected_status"`
 }
 
 type TargetConfig struct {
@@ -53,7 +53,26 @@ func LoadConfig(path string) (Config, error) {
 	return cfg, nil
 }
 
-func (c *Config) normalize(sourcePath string) error {
+func WriteConfig(path string, cfg Config) error {
+	data, err := json.MarshalIndent(cfg, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	tempPath := path + ".tmp"
+	if err := os.WriteFile(tempPath, data, 0o644); err != nil {
+		return err
+	}
+	if _, err := os.Stat(path); err == nil {
+		if err := os.Remove(path); err != nil {
+			return err
+		}
+	}
+
+	return os.Rename(tempPath, path)
+}
+
+func (c *Config) normalize(_ string) error {
 	c.Name = strings.TrimSpace(c.Name)
 	c.BaseURL = strings.TrimRight(strings.TrimSpace(c.BaseURL), "/")
 

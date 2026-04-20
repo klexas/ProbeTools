@@ -1,0 +1,81 @@
+{
+  "name": "my-public-api",
+  "base_url": "https://api.example.com",
+  "default_headers": {
+    "Accept": "application/json",
+    "Authorization": "Bearer replace-me"
+  },
+  "timeout_seconds": 10,
+  "delay_threshold_ms": 900,
+  "report_path": "sqlscan-report.md",
+  "endpoints": [
+    {
+      "name": "search-users",
+      "method": "GET",
+      "path": "/users/search",
+      "query": {
+        "q": "alice",
+        "sort": "name"
+      },
+      "headers": {
+        "X-Tenant-ID": "demo"
+      },
+      "path_params": {},
+      "json_body": {},
+      "targets": [
+        {
+          "name": "q",
+          "location": "query"
+        },
+        {
+          "name": "X-Tenant-ID",
+          "location": "header"
+        }
+      ],
+      "expected_status": 200
+    },
+    {
+      "name": "get-user",
+      "method": "GET",
+      "path": "/users/{id}",
+      "query": {},
+      "headers": {},
+      "path_params": {
+        "id": "123"
+      },
+      "json_body": {},
+      "targets": [
+        {
+          "name": "id",
+          "location": "path"
+        }
+      ],
+      "expected_status": 200
+    },
+    {
+      "name": "login",
+      "method": "POST",
+      "path": "/auth/login",
+      "query": {},
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "path_params": {},
+      "json_body": {
+        "email": "alice@example.com",
+        "password": "example-password"
+      },
+      "targets": [
+        {
+          "name": "email",
+          "location": "json"
+        },
+        {
+          "name": "password",
+          "location": "json"
+        }
+      ],
+      "expected_status": 200
+    }
+  ]
+}
