@@ -22,6 +22,7 @@ type Reference struct {
 
 type Extracted struct {
 	Links      []Reference
+	ScriptRefs []Reference
 	Candidates []Reference
 }
 
@@ -67,11 +68,13 @@ func (e *HTMLExtractor) Extract(base *url.URL, body []byte) (Extracted, error) {
 				}
 			case "script":
 				if resolved := resolveURL(base, attr(node, "src")); resolved != nil {
-					extracted.Candidates = append(extracted.Candidates, Reference{
+					ref := Reference{
 						URL:    resolved,
 						Source: model.SourceScriptRef,
 						Method: "GET",
-					})
+					}
+					extracted.ScriptRefs = append(extracted.ScriptRefs, ref)
+					extracted.Candidates = append(extracted.Candidates, ref)
 				}
 			case "img", "iframe":
 				if resolved := resolveURL(base, attr(node, "src")); resolved != nil {
@@ -83,11 +86,19 @@ func (e *HTMLExtractor) Extract(base *url.URL, body []byte) (Extracted, error) {
 				}
 			case "link":
 				if resolved := resolveURL(base, attr(node, "href")); resolved != nil {
-					extracted.Candidates = append(extracted.Candidates, Reference{
+					ref := Reference{
 						URL:    resolved,
 						Source: model.SourceResourceRef,
 						Method: "GET",
-					})
+					}
+					if strings.EqualFold(attr(node, "rel"), "modulepreload") && strings.HasSuffix(strings.ToLower(resolved.Path), ".js") {
+						extracted.ScriptRefs = append(extracted.ScriptRefs, Reference{
+							URL:    resolved,
+							Source: model.SourceScriptRef,
+							Method: "GET",
+						})
+					}
+					extracted.Candidates = append(extracted.Candidates, ref)
 				}
 			}
 		}
@@ -112,6 +123,7 @@ func (e *HTMLExtractor) Extract(base *url.URL, body []byte) (Extracted, error) {
 	visit(doc)
 
 	extracted.Links = uniqueReferences(extracted.Links)
+	extracted.ScriptRefs = uniqueReferences(extracted.ScriptRefs)
 	extracted.Candidates = uniqueReferences(extracted.Candidates)
 
 	return extracted, nil

@@ -31,12 +31,12 @@ func Run(cfg config.Config) error {
 	}
 
 	analyzer := discovery.NewAnalyzer(target, cfg.Probe, endpointProber)
-	crawler := crawl.NewCrawler(target, cfg.MaxPages, fetcher, extractor, analyzer)
+	crawler := crawl.NewCrawler(target, cfg.MaxPages, cfg.MaxDepth, fetcher, extractor, analyzer)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(cfg.MaxPages+5)*cfg.Timeout)
 	defer cancel()
 
-	pages, backendCalls, warnings, err := crawler.Run(ctx)
+	requests, pages, backendCalls, warnings, err := crawler.Run(ctx)
 	if err != nil {
 		return err
 	}
@@ -46,15 +46,19 @@ func Run(cfg config.Config) error {
 		GeneratedAt: time.Now().UTC(),
 		Config: model.ReportConfig{
 			MaxPages:  cfg.MaxPages,
+			MaxDepth:  cfg.MaxDepth,
 			Timeout:   cfg.Timeout.String(),
 			UserAgent: cfg.UserAgent,
 			Probe:     cfg.Probe,
 		},
 		Summary: model.Summary{
-			PagesCrawled: len(pages),
-			BackendCalls: len(backendCalls),
-			Warnings:     warnings,
+			PagesCrawled:    len(pages),
+			GetRequests:     len(requests),
+			BackendCalls:    len(backendCalls),
+			MaxDepthReached: maxDepthReached(pages),
+			Warnings:        warnings,
 		},
+		Requests:     requests,
 		Pages:        pages,
 		BackendCalls: backendCalls,
 	}
@@ -64,4 +68,15 @@ func Run(cfg config.Config) error {
 	}
 
 	return nil
+}
+
+func maxDepthReached(pages []model.Page) int {
+	maxDepth := 0
+	for _, page := range pages {
+		if page.Depth > maxDepth {
+			maxDepth = page.Depth
+		}
+	}
+
+	return maxDepth
 }

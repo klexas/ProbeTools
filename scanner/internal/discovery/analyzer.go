@@ -10,6 +10,7 @@ import (
 	"github.com/klexas/ProbeTools/scanner/internal/extract"
 	"github.com/klexas/ProbeTools/scanner/internal/model"
 	"github.com/klexas/ProbeTools/scanner/internal/probe"
+	"github.com/klexas/ProbeTools/scanner/internal/site"
 )
 
 var backendMarkers = []string{
@@ -77,7 +78,7 @@ func (a *Analyzer) Observe(pageURL *url.URL, extracted extract.Extracted) int {
 	matches := 0
 
 	for _, candidate := range extracted.Candidates {
-		if candidate.URL == nil || !sameHost(candidate.URL.Host, a.targetHost) {
+		if candidate.URL == nil || !site.SameSiteHost(candidate.URL.Host, a.targetHost) {
 			continue
 		}
 
@@ -221,10 +222,6 @@ func addString(values *[]string, value string) {
 	}
 
 	*values = append(*values, value)
-}
-
-func sameHost(candidateHost, targetHost string) bool {
-	return strings.EqualFold(candidateHost, targetHost)
 }
 
 func mustParseURL(raw string) *url.URL {
