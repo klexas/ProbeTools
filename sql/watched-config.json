@@ -1,0 +1,9 @@
+{
+  "name": "securinote.com-observed-api",
+  "base_url": "https://securinote.com",
+  "default_headers": {},
+  "timeout_seconds": 10,
+  "delay_threshold_ms": 900,
+  "report_path": "sqlscan-report.md",
+  "endpoints": []
+}
